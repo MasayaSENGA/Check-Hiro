@@ -35,6 +35,13 @@
   <h2>4. disabled を含む</h2>
   <div id="disabled"></div>
 
+  <h2>5. label の click を preventDefault して自前で切り替えるサイト</h2>
+  <p>label をクリックしてもブラウザは input にクリックを転送しない（ページ側の JS が切り替える）。</p>
+  <div id="custom"></div>
+
+  <h2>6. 変更のたびに input 要素を差し替える（フレームワークの再描画を模したもの）</h2>
+  <div id="rerender"></div>
+
   <h2>change イベントログ</h2>
   <div id="log"></div>
 
@@ -66,6 +73,37 @@
           `<label><input type="checkbox" id="${form}-${i}"> ${form} 項目 ${i}</label>`);
       }
     }
+
+    // 5. label の click を preventDefault して自前でトグルするパターン
+    const custom = document.getElementById('custom');
+    for (let i = 1; i <= 8; i++) {
+      custom.insertAdjacentHTML('beforeend',
+        `<label class="custom"><input type="checkbox" id="custom-${i}"> カスタム項目 ${i}</label>`);
+    }
+    custom.addEventListener('click', (e) => {
+      const label = e.target.closest('label.custom');
+      if (!label) return;
+      if (e.target.tagName === 'INPUT') return; // input 直クリックはそのまま
+      e.preventDefault();
+      const input = label.control;
+      input.checked = !input.checked;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // 6. change のたびに input を新しい要素へ差し替えるパターン
+    const rerender = document.getElementById('rerender');
+    const rerenderState = Array.from({ length: 8 }, () => false);
+    function renderList() {
+      rerender.innerHTML = rerenderState.map((checked, i) =>
+        `<label><input type="checkbox" id="rerender-${i + 1}" ${checked ? 'checked' : ''}> 再描画項目 ${i + 1}</label>`
+      ).join('');
+    }
+    rerender.addEventListener('change', (e) => {
+      const idx = Number(e.target.id.replace('rerender-', '')) - 1;
+      rerenderState[idx] = e.target.checked;
+      renderList(); // 全 input を作り直す
+    });
+    renderList();
 
     const dis = document.getElementById('disabled');
     for (let i = 1; i <= 8; i++) {
