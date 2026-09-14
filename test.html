@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>チェックひろ 動作確認</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+    h2 { margin-top: 32px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    label { display: block; padding: 4px 0; }
+    table { border-collapse: collapse; }
+    td, th { border: 1px solid #ccc; padding: 4px 12px; }
+    #log { background: #f4f4f4; padding: 8px; font-family: monospace; font-size: 12px; max-height: 160px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>チェックひろ 動作確認</h1>
+  <p>先頭をクリック → Shift を押しながら末尾をクリックすると、間がまとめて選択されます。</p>
+
+  <h2>1. 単純なリスト（label で囲んだ形）</h2>
+  <div id="list"></div>
+
+  <h2>2. テーブル（input のみ）</h2>
+  <table>
+    <thead><tr><th></th><th>商品名</th></tr></thead>
+    <tbody id="table"></tbody>
+  </table>
+
+  <h2>3. form が分かれている場合</h2>
+  <form id="formA"></form>
+  <hr>
+  <form id="formB"></form>
+  <p>form A の先頭 → form B の末尾を Shift クリックすると、form をまたいで選択されます。<br>
+     form A 内だけで Shift クリックすると、form B は変わりません。</p>
+
+  <h2>4. disabled を含む</h2>
+  <div id="disabled"></div>
+
+  <h2>change イベントログ</h2>
+  <div id="log"></div>
+
+  <script>
+    const log = document.getElementById('log');
+    document.addEventListener('change', (e) => {
+      if (e.target.type !== 'checkbox') return;
+      const line = document.createElement('div');
+      line.textContent = `${e.target.id || e.target.name || '(no id)'} → ${e.target.checked}`;
+      log.prepend(line);
+    });
+
+    const list = document.getElementById('list');
+    for (let i = 1; i <= 10; i++) {
+      list.insertAdjacentHTML('beforeend',
+        `<label><input type="checkbox" id="list-${i}"> リスト項目 ${i}</label>`);
+    }
+
+    const table = document.getElementById('table');
+    for (let i = 1; i <= 10; i++) {
+      table.insertAdjacentHTML('beforeend',
+        `<tr><td><input type="checkbox" id="table-${i}"></td><td>商品 ${i}</td></tr>`);
+    }
+
+    for (const form of ['formA', 'formB']) {
+      const el = document.getElementById(form);
+      for (let i = 1; i <= 5; i++) {
+        el.insertAdjacentHTML('beforeend',
+          `<label><input type="checkbox" id="${form}-${i}"> ${form} 項目 ${i}</label>`);
+      }
+    }
+
+    const dis = document.getElementById('disabled');
+    for (let i = 1; i <= 8; i++) {
+      const disabled = i % 3 === 0 ? 'disabled' : '';
+      dis.insertAdjacentHTML('beforeend',
+        `<label><input type="checkbox" id="dis-${i}" ${disabled}> 項目 ${i}${disabled ? '（disabled）' : ''}</label>`);
+    }
+  </script>
+</body>
+</html>
