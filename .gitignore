@@ -1,0 +1,7 @@
+# ビルド成果物（ストア提出用 zip）
+dist/
+
+# 一時ファイル
+_*.html
+Thumbs.db
+.DS_Store

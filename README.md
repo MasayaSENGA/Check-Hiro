@@ -41,6 +41,14 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 - Shadow DOM の内側にあるチェックボックスは、同じ Shadow Root 内での範囲選択のみ対応しています
 - `<input type="checkbox">` ではない独自実装（`role="checkbox"` の div など）は対象外です
 
+## Chrome ウェブストアへの提出
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
+```
+
+`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・権限の説明・データ使用の申告など）は [store/listing.md](store/listing.md) にまとめています。プライバシーポリシーは [PRIVACY.md](PRIVACY.md) です。
+
 ## ファイル構成
 
 ```
@@ -52,6 +60,13 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 ├── popup.js        ポップアップのロジック（設定の読み書き）
 ├── background.js   Service Worker（オフ時の「OFF」バッジ表示）
 ├── icons/          アイコン画像
-├── test.html       動作確認用のサンプルページ
+├── test.html       動作確認用のサンプルページ（配布物には含めない）
+├── scripts/
+│   └── build.ps1   ストア提出用 zip の作成スクリプト
+├── store/
+│   ├── listing.md        ストア申請フォームの入力内容まとめ
+│   ├── screenshot-1.png  スクリーンショット（1280×800）
+│   └── promo-small.png   小プロモーションタイル（440×280）
+├── PRIVACY.md      プライバシーポリシー
 └── README.md
 ```
