@@ -11,9 +11,11 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 1. Chrome で `chrome://extensions` を開く
 2. 右上の「デベロッパーモード」を ON にする
 3. 「パッケージ化されていない拡張機能を読み込む」をクリック
-4. この `チェックひろ` フォルダを選択する
+4. このリポジトリのフォルダ（`Check-Hiro`）を選択する
 
 コードを変更したときは、拡張機能一覧の「更新」ボタン（🔄）を押してから、対象ページを再読み込みしてください。
+
+`test.html` をローカルファイル（`file://`）として開いて動作確認するときは、拡張機能の「詳細」で「ファイルの URL へのアクセスを許可する」を ON にしてください（既定では OFF で、content script が注入されません）。
 
 ## オン／オフの切り替え
 
@@ -47,12 +49,20 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・権限の説明・データ使用の申告など）は [store/listing.md](store/listing.md) にまとめています。プライバシーポリシーは [PRIVACY.md](PRIVACY.md) です。
+`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・カテゴリ・権限の説明・データ使用の申告・審査用のテスト手順・提出前チェックリストなど）は [store/listing.md](store/listing.md) にまとめています。プライバシーポリシーは [PRIVACY.md](PRIVACY.md) です。
+
+掲載用の画像（スクリーンショット・プロモーションタイル）は次のコマンドで作り直せます。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\make-store-images.ps1
+```
+
+> プライバシーポリシー・ホームページ・サポートの URL はこの GitHub リポジトリを指しているため、提出前にリポジトリを公開（Public）にしておく必要があります。
 
 ## ファイル構成
 
 ```
-チェックひろ/
+Check-Hiro/
 ├── manifest.json   拡張機能の定義（Manifest V3）
 ├── content.js      範囲選択のロジック
 ├── popup.html      ツールバーから開くポップアップ（オン／オフ切り替え）
@@ -62,10 +72,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ├── icons/          アイコン画像
 ├── test.html       動作確認用のサンプルページ（配布物には含めない）
 ├── scripts/
-│   └── build.ps1   ストア提出用 zip の作成スクリプト
+│   ├── build.ps1              ストア提出用 zip の作成スクリプト
+│   └── make-store-images.ps1  掲載用画像の作成スクリプト
 ├── store/
 │   ├── listing.md        ストア申請フォームの入力内容まとめ
-│   ├── screenshot-1.png  スクリーンショット（1280×800）
+│   ├── screenshot-1.png  スクリーンショット 1：範囲選択（1280×800）
+│   ├── screenshot-2.png  スクリーンショット 2：オン／オフとプライバシー（1280×800）
 │   └── promo-small.png   小プロモーションタイル（440×280）
 ├── PRIVACY.md      プライバシーポリシー
 └── README.md
