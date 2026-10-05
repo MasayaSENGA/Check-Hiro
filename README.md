@@ -6,7 +6,15 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 2. Shift キーを押しながら末尾のチェックボックスをクリック
 3. 間にあるチェックボックスがすべて同じ状態（ON または OFF）になる
 
+## インストール（Chrome ウェブストア）
+
+Chrome ウェブストアで公開しています。掲載ページで「Chrome に追加」を押すとインストールできます。
+
+https://chromewebstore.google.com/detail/fddljingadaoookjbhjngcofbaibodof
+
 ## インストール（開発者モード）
+
+このリポジトリは非公開です。開発中のコードを試すときは、手元のフォルダを開発者モードで読み込みます。
 
 1. Chrome で `chrome://extensions` を開く
 2. 右上の「デベロッパーモード」を ON にする
@@ -49,7 +57,7 @@ Web ページ上のチェックボックスを **Shift + クリック** で範�
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・カテゴリ・権限の説明・データ使用の申告・審査用のテスト手順・提出前チェックリストなど）は [store/listing.md](store/listing.md) にまとめています。プライバシーポリシーは [PRIVACY.md](PRIVACY.md) です。
+`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・カテゴリ・権限の説明・データ使用の申告・審査用のテスト手順・提出前チェックリストなど）は [store/listing.md](store/listing.md) にまとめています。
 
 掲載用の画像（スクリーンショット・プロモーションタイル）は次のコマンドで作り直せます。
 
@@ -57,7 +65,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\make-store-images.ps1
 ```
 
-> プライバシーポリシー・ホームページ・サポートの URL はこの GitHub リポジトリを指しているため、提出前にリポジトリを公開（Public）にしておく必要があります。
+## プライバシーポリシー
+
+https://privacy.love-live.jp/ で公開しています。全拡張機能で共通のポリシーで、このリポジトリとは別の、プライバシーポリシー用のリポジトリで管理しています。
 
 ## ファイル構成
 
@@ -79,6 +89,5 @@ Check-Hiro/
 │   ├── screenshot-1.png  スクリーンショット 1：範囲選択（1280×800）
 │   ├── screenshot-2.png  スクリーンショット 2：オン／オフとプライバシー（1280×800）
 │   └── promo-small.png   小プロモーションタイル（440×280）
-├── PRIVACY.md      プライバシーポリシー
 └── README.md
 ```

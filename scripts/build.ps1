@@ -5,7 +5,7 @@
 #
 # 出力: dist\check-hiro-v<version>.zip
 #   manifest.json の version を読み取ってファイル名に使う。
-#   開発用のファイル（test.html, README.md, PRIVACY.md, store/ など）は含めない。
+#   開発用のファイル（test.html, README.md, store/ など）は含めない。
 
 $ErrorActionPreference = 'Stop'
 
