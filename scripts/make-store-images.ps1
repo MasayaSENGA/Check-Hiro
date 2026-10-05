@@ -4,7 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File .\scripts\make-store-images.ps1
 #
 # 出力: store\screenshot-1.png（範囲選択）, store\screenshot-2.png（オン／オフとプライバシー）,
-#       store\promo-small.png（小プロモーションタイル）
+#       store\promo-small.png（小プロモーションタイル）, store\promo-marquee.png（マーキー プロモーション タイル）
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -269,6 +269,57 @@ Draw-Text $g '範囲選択' 226 188 19 $white
 
 $g.Dispose()
 $bmp.Save((Join-Path $outDir 'promo-small.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Dispose()
+
+# ---------------------------------------------------------------- marquee promo tile 1400x560
+$c = New-Canvas 1400 560 $blue; $bmp = $c[0]; $g = $c[1]
+$g.InterpolationMode = 'HighQualityBicubic'
+$grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush (New-Object System.Drawing.Point 0, 0), (New-Object System.Drawing.Point 1400, 560), $blue, $blueDk
+$g.FillRectangle($grad, 0, 0, 1400, 560)
+
+# 左: アイコン・名前・キャッチコピー（アイコンは青地なので白い枠を付ける）
+$g.FillPath((New-Object System.Drawing.SolidBrush $white), (New-RoundedPath 112 118 96 96 22))
+$g.DrawImage($icon, 120, 126, 80, 80)
+Draw-Text $g 'チェックひろ' 228 116 72 $white 'Bold'
+Draw-Text $g 'Shift + クリックで' 114 262 42 $white 'Bold'
+Draw-Text $g 'チェックボックスを範囲選択' 114 318 42 $white 'Bold'
+Draw-Text $g 'どの Web サイトでも、間のチェックボックスをまとめて ON / OFF' 118 400 22 ([System.Drawing.Color]::FromArgb(225, 255, 255, 255))
+
+# 右: チェックボックスの一覧（行の文字はバーで表す）
+$mx = 800; $my = 82; $mw = 500; $mh = 396
+$g.FillPath((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(60, 0, 0, 0))), (New-RoundedPath ($mx + 6) ($my + 12) $mw $mh 20))
+$mcard = New-RoundedPath $mx $my $mw $mh 20
+$g.FillPath((New-Object System.Drawing.SolidBrush $white), $mcard)
+
+$mRowH = 56; $mRowY0 = $my + 40
+for ($i = 0; $i -lt 6; $i++) {
+  $y = $mRowY0 + $i * $mRowH
+  $checked = ($i -ge 1 -and $i -le 4)
+  if ($checked) {
+    $g.FillRectangle((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 239, 246, 255))), $mx, $y - 10, $mw, $mRowH)
+  }
+  Draw-Check $g ($mx + 36) ($y + 4) 28 $checked
+  $barColor = if ($checked) { [System.Drawing.Color]::FromArgb(255, 191, 219, 254) } else { [System.Drawing.Color]::FromArgb(255, 229, 231, 235) }
+  $barW = 150 + (($i * 53) % 90)
+  $g.FillPath((New-Object System.Drawing.SolidBrush $barColor), (New-RoundedPath ($mx + 84) ($y + 11) $barW 14 7))
+}
+
+# 行の右側に操作のバッジ（① 先頭 / ② 末尾）
+function Draw-MarqueeBadge($g, [string]$s, [single]$right, [single]$y) {
+  $font = New-Object System.Drawing.Font $fontName, 19, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
+  $tw = [single]$g.MeasureString($s, $font, 10000, $typo).Width
+  $bw = $tw + 40
+  $g.FillPath((New-Object System.Drawing.SolidBrush $blueDk), (New-RoundedPath ($right - $bw) $y $bw 42 21))
+  $g.DrawString($s, $font, (New-Object System.Drawing.SolidBrush $white), ($right - $bw + 20), ($y + 9), $typo)
+}
+Draw-MarqueeBadge $g '① クリック' ($mx + $mw - 28) ($mRowY0 + 1 * $mRowH - 3)
+Draw-MarqueeBadge $g '② Shift ＋ クリック' ($mx + $mw - 28) ($mRowY0 + 4 * $mRowH - 3)
+
+$g.Dispose()
+# ストアのプロモーション タイルは 24 ビット PNG（アルファなし）か JPEG のため、RGB に変換して保存する
+$rgb = $bmp.Clone((New-Object System.Drawing.Rectangle 0, 0, $bmp.Width, $bmp.Height), [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+$rgb.Save((Join-Path $outDir 'promo-marquee.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+$rgb.Dispose()
 $bmp.Dispose()
 $icon.Dispose()
 

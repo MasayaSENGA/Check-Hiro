@@ -88,6 +88,7 @@ Check-Hiro/
 │   ├── listing.md        ストア申請フォームの入力内容まとめ
 │   ├── screenshot-1.png  スクリーンショット 1：範囲選択（1280×800）
 │   ├── screenshot-2.png  スクリーンショット 2：オン／オフとプライバシー（1280×800）
-│   └── promo-small.png   小プロモーションタイル（440×280）
+│   ├── promo-small.png   小プロモーションタイル（440×280）
+│   └── promo-marquee.png マーキー プロモーションタイル（1400×560）
 └── README.md
 ```
