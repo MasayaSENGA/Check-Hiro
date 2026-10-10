@@ -14,7 +14,7 @@ https://chromewebstore.google.com/detail/fddljingadaoookjbhjngcofbaibodof
 
 ## インストール（開発者モード）
 
-このリポジトリは非公開です。開発中のコードを試すときは、手元のフォルダを開発者モードで読み込みます。
+ストアを使わずに開発中のコードを試すときは、このリポジトリを手元にクローンし、開発者モードで読み込みます。
 
 1. Chrome で `chrome://extensions` を開く
 2. 右上の「デベロッパーモード」を ON にする
@@ -57,7 +57,7 @@ https://chromewebstore.google.com/detail/fddljingadaoookjbhjngcofbaibodof
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-`dist/check-hiro-v<version>.zip` が生成されます。申請フォームに入力する情報（説明文・カテゴリ・権限の説明・データ使用の申告・審査用のテスト手順・提出前チェックリストなど）は [store/listing.md](store/listing.md) にまとめています。
+`dist/check-hiro-v<version>.zip` が生成されます。
 
 掲載用の画像（スクリーンショット・プロモーションタイル）は次のコマンドで作り直せます。
 
@@ -85,10 +85,14 @@ Check-Hiro/
 │   ├── build.ps1              ストア提出用 zip の作成スクリプト
 │   └── make-store-images.ps1  掲載用画像の作成スクリプト
 ├── store/
-│   ├── listing.md        ストア申請フォームの入力内容まとめ
 │   ├── screenshot-1.png  スクリーンショット 1：範囲選択（1280×800）
 │   ├── screenshot-2.png  スクリーンショット 2：オン／オフとプライバシー（1280×800）
 │   ├── promo-small.png   小プロモーションタイル（440×280）
 │   └── promo-marquee.png マーキー プロモーションタイル（1400×560）
+├── LICENSE         ライセンス（MIT）
 └── README.md
 ```
+
+## ライセンス
+
+[MIT](LICENSE)

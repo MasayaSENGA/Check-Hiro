@@ -1,6 +1,9 @@
 # ビルド成果物（ストア提出用 zip）
 dist/
 
+# Chrome ウェブストアの掲載作業用の資料（手元だけで管理し、リポジトリには入れない）
+store/listing.md
+
 # 一時ファイル
 _*.html
 Thumbs.db
