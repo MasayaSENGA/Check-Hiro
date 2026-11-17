@@ -1,9 +1,11 @@
 /**
  * チェックひろ - content script
  *
- * Shift キーを押しながらチェックボックスをクリックすると、
- * 直前にクリックしたチェックボックスとの間にあるチェックボックスを
- * まとめて同じ状態（ON / OFF）にする。
+ * 1. Shift キーを押しながらチェックボックスをクリックすると、
+ *    直前にクリックしたチェックボックスとの間にあるチェックボックスを
+ *    まとめて同じ状態（ON / OFF）にする。
+ * 2. コンテキストメニューから「ページ上のチェックボックスを全てチェック」
+ *    「ページ上のチェックボックスを全て解除」を実行できる。
  *
  * 実装方針:
  *  - document の click を capture フェーズで監視（ページ側の stopPropagation に影響されない）
@@ -15,6 +17,9 @@
  *    ブラウザの既定動作を止めて、拡張機能側でチェックボックスを切り替える。
  *  - 起点（直前クリック）は要素だけでなく「何番目か」も記録し、再描画で input 要素が
  *    差し替えられるページでも位置ベースで復元する
+ *  - React などの制御コンポーネント（Trello のチェックリストなど）は、.click() の直後に
+ *    いったん元の値へ戻され、新しい状態はマイクロタスク以降の再描画で反映される。
+ *    そのため、クリックした項目の状態は同期的に読まず、反映を待ってから範囲に適用する
  */
 (() => {
   'use strict';
@@ -114,6 +119,38 @@
     return all[anchor.index] === target ? -1 : anchor.index;
   }
 
+  // ---- クリック結果の確定待ち -------------------------------------------------
+
+  /** 状態の反映を待つ上限。これを過ぎたら、その時点の状態を確定値として扱う */
+  const SETTLE_TIMEOUT_MS = 200;
+  const SETTLE_POLL_MS = 16;
+
+  /**
+   * クリックしたチェックボックスの状態が確定してから callback(checked) を呼ぶ。
+   *
+   * React などの制御コンポーネントでは、クリック直後の checked は元の値に戻されており、
+   * 新しい状態は再描画（マイクロタスク以降）で反映される。そこで次のタスクで状態を読み、
+   * まだ before のままなら少し待って読み直す。上限まで変わらなければ、ページ側が
+   * 切り替えを拒否したものとみなし、その時点の状態で callback を呼ぶ。
+   *
+   * 再描画で要素が差し替えられていても、同じ位置（index）の要素から状態を読む。
+   */
+  function whenSettled(root, index, element, before, callback) {
+    const startedAt = Date.now();
+
+    const check = () => {
+      const current = element.isConnected ? element : collectCheckboxes(root)[index];
+      if (!current) return;
+      if (current.checked !== before || Date.now() - startedAt >= SETTLE_TIMEOUT_MS) {
+        callback(current.checked);
+        return;
+      }
+      setTimeout(check, SETTLE_POLL_MS);
+    };
+
+    setTimeout(check, 0);
+  }
+
   // ---- 範囲の適用 -----------------------------------------------------------
 
   /**
@@ -193,12 +230,14 @@
       const toIndex = all.indexOf(cb);
       setAnchor(cb);
 
+      const before = cb.checked;
       cb.click(); // 合成クリック → 自身は isTrusted=false なので再入しない
       if (fromIndex !== -1) {
-        // click() 後に再描画されていても位置で追えるよう、状態は取り直す
-        const current = collectCheckboxes(root)[toIndex];
-        const desired = current ? current.checked : cb.checked;
-        applyRange(root, fromIndex, toIndex, desired);
+        // 制御コンポーネントでは click() 直後の checked が元の値に戻っているため、
+        // 反映を待ってから最終状態を読み取る
+        whenSettled(root, toIndex, cb, before, (checked) => {
+          applyRange(root, fromIndex, toIndex, checked);
+        });
       }
       return;
     }
@@ -212,15 +251,13 @@
 
     if (fromIndex === -1) return;
 
-    // ブラウザはクリック時点でチェック状態を切り替えている。
-    // ただしページ側が preventDefault すると元に戻るため、
-    // クリック処理が完了した次のタイミングで最終状態を読み取る。
-    setTimeout(() => {
-      // 再描画で target が差し替えられていても、同じ位置の要素から状態を読む
-      const current = target.isConnected ? target : collectCheckboxes(root)[toIndex];
-      if (!current) return;
-      applyRange(root, fromIndex, toIndex, current.checked);
-    }, 0);
+    // ブラウザはクリック時点（このハンドラが呼ばれる前）でチェック状態を切り替えている。
+    // ただしページ側が preventDefault したり、制御コンポーネントが値を戻したりするため、
+    // クリック処理と再描画が終わってから最終状態を読み取る。
+    const before = !target.checked;
+    whenSettled(root, toIndex, target, before, (checked) => {
+      applyRange(root, fromIndex, toIndex, checked);
+    });
   }
 
   /** Shift+mousedown による不要なテキスト選択の拡張を抑止する */
@@ -232,6 +269,114 @@
       event.preventDefault();
     }
   }
+
+  // ---- 一括チェック／一括解除 -----------------------------------------------
+
+  /**
+   * 指定したルート配下のチェックボックスを再帰的に収集する。
+   * Shadow DOM (open) や同一オリジンの iframe / frame の内部も探索対象に含む。
+   */
+  function collectAllCheckboxes(root) {
+    const checkboxes = [];
+
+    function scan(node) {
+      if (!node) return;
+
+      if (typeof node.querySelectorAll === 'function') {
+        const inputs = node.querySelectorAll(CHECKBOX_SELECTOR);
+        for (let i = 0; i < inputs.length; i++) {
+          checkboxes.push(inputs[i]);
+        }
+
+        // 同一オリジンの iframe / frame 内のドキュメントも探索
+        const frames = node.querySelectorAll('iframe, frame');
+        for (let i = 0; i < frames.length; i++) {
+          try {
+            if (frames[i].contentDocument) {
+              scan(frames[i].contentDocument);
+            }
+          } catch (_) {
+            // クロスオリジン等でアクセス制限がある場合はスキップ
+          }
+        }
+
+        // Shadow DOM (open) を持つ要素の内部も探索
+        const allElements = node.querySelectorAll('*');
+        for (let i = 0; i < allElements.length; i++) {
+          if (allElements[i].shadowRoot) {
+            scan(allElements[i].shadowRoot);
+          }
+        }
+      }
+    }
+
+    scan(root);
+    return checkboxes;
+  }
+
+  /**
+   * ページ上のすべてのチェックボックスを desired（true: 全てチェック, false: 全て解除）にする。
+   *
+   * 実装方針:
+   *  - disabled のチェックボックスはスキップする
+   *  - 既に desired の状態になっているものは何もしない
+   *  - .click() で切り替えることでページ側／フレームワーク（React / Vue 等）のイベントを発火させる
+   *  - 途中で再描画が発生して要素が差し替えられても、最新の DOM から追従して残りを処理する
+   *  - preventDefault 等で状態が変わらない要素があっても無限ループしないよう除外管理する
+   *  - 処理後、Shift クリックの起点はリセットする
+   */
+  function setAllCheckboxes(desired) {
+    anchor = null;
+
+    const unchangeable = new Set();
+    const MAX_PASSES = 200;
+
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      const all = collectAllCheckboxes(document);
+      const targets = all.filter(
+        (cb) => !cb.disabled && cb.checked !== desired && !unchangeable.has(cb)
+      );
+      if (targets.length === 0) break;
+
+      let changedAnyInPass = false;
+      for (let i = 0; i < targets.length; i++) {
+        const cb = targets[i];
+        if (!cb.isConnected) {
+          // 再描画等で要素が DOM から外れた場合は、最新の DOM を取り直すためにパスを抜ける
+          break;
+        }
+        if (cb.disabled || cb.checked === desired || unchangeable.has(cb)) {
+          continue;
+        }
+
+        cb.click();
+
+        if (cb.isConnected && cb.checked !== desired) {
+          unchangeable.add(cb);
+        } else {
+          changedAnyInPass = true;
+        }
+      }
+
+      // このパスで1つも状態を変更できなかった場合は終了（無限ループ防止）
+      if (!changedAnyInPass) {
+        break;
+      }
+    }
+  }
+
+  // ---- バックグラウンド（コンテキストメニュー）からのメッセージ受信 ---------
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || typeof message.action !== 'string') return;
+
+    if (message.action === 'checkAll') {
+      setAllCheckboxes(true);
+      sendResponse({ success: true });
+    } else if (message.action === 'uncheckAll') {
+      setAllCheckboxes(false);
+      sendResponse({ success: true });
+    }
+  });
 
   document.addEventListener('mousedown', onMouseDown, true);
   document.addEventListener('click', onClick, true);

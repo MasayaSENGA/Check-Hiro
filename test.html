@@ -10,11 +10,19 @@
     table { border-collapse: collapse; }
     td, th { border: 1px solid #ccc; padding: 4px 12px; }
     #log { background: #f4f4f4; padding: 8px; font-family: monospace; font-size: 12px; max-height: 160px; overflow: auto; }
+    /* 8. Trello のチェックリストと同じく、input を 1px で隠して見た目は span で描く */
+    #controlled { list-style: none; padding: 0; margin: 0; }
+    #controlled li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+    #controlled label { position: relative; display: inline-block; padding: 0; cursor: pointer; }
+    #controlled input { position: absolute; top: 0; left: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+    #controlled .box { display: block; width: 14px; height: 14px; border: 2px solid #888; border-radius: 3px; }
+    #controlled label.on .box { background: #2563eb; border-color: #2563eb; }
   </style>
 </head>
 <body>
   <h1>チェックひろ 動作確認</h1>
-  <p>先頭をクリック → Shift を押しながら末尾をクリックすると、間がまとめて選択されます。</p>
+  <p>先頭をクリック → Shift を押しながら末尾をクリックすると、間がまとめて選択されます。<br>
+     ページ上で右クリックし、コンテキストメニューの「ページ上のチェックボックスを全てチェック」「ページ上のチェックボックスを全て解除」も確認できます。</p>
 
   <h2>1. 単純なリスト（label で囲んだ形）</h2>
   <div id="list"></div>
@@ -42,16 +50,28 @@
   <h2>6. 変更のたびに input 要素を差し替える（フレームワークの再描画を模したもの）</h2>
   <div id="rerender"></div>
 
+  <h2>7. Shadow DOM（open）の内側</h2>
+  <div id="shadow-host"></div>
+
+  <h2>8. 制御コンポーネント（Trello のチェックリストと同じ作り）</h2>
+  <p>input は 1px で隠れていて、クリックは label（見た目のチェックボックス）に当たる。
+     React の制御コンポーネントと同じく、クリック直後はいったん元の値に戻り、新しい状態は少し後（マイクロタスク）で反映される。</p>
+  <ul id="controlled"></ul>
+
   <h2>change イベントログ</h2>
   <div id="log"></div>
 
   <script>
     const log = document.getElementById('log');
+    function addLog(name, checked) {
+      const line = document.createElement('div');
+      line.textContent = `${name} → ${checked}`;
+      log.prepend(line);
+    }
     document.addEventListener('change', (e) => {
       if (e.target.type !== 'checkbox') return;
-      const line = document.createElement('div');
-      line.textContent = `${e.target.id || e.target.name || '(no id)'} → ${e.target.checked}`;
-      log.prepend(line);
+      if (e.target.closest('#controlled')) return; // 8. は状態の反映時に記録する
+      addLog(e.target.id || e.target.name || '(no id)', e.target.checked);
     });
 
     const list = document.getElementById('list');
@@ -111,6 +131,37 @@
       dis.insertAdjacentHTML('beforeend',
         `<label><input type="checkbox" id="dis-${i}" ${disabled}> 項目 ${i}${disabled ? '（disabled）' : ''}</label>`);
     }
+
+    // 7. Shadow DOM
+    const shadowHost = document.getElementById('shadow-host');
+    if (shadowHost && shadowHost.attachShadow) {
+      const shadow = shadowHost.attachShadow({ mode: 'open' });
+      for (let i = 1; i <= 3; i++) {
+        shadow.innerHTML += `<label style="display:block;padding:4px 0;"><input type="checkbox" id="shadow-${i}"> Shadow項目 ${i}</label>`;
+      }
+    }
+
+    // 8. 制御コンポーネント（Trello のチェックリストを模したもの）
+    const controlled = document.getElementById('controlled');
+    const controlledState = Array.from({ length: 8 }, () => false);
+    controlled.innerHTML = controlledState.map((_, i) =>
+      `<li><label><input type="checkbox" id="controlled-${i + 1}"><span class="box"></span></label>チェックリスト項目 ${i + 1}</li>`
+    ).join('');
+    function syncControlled(i) {
+      const input = document.getElementById(`controlled-${i + 1}`);
+      input.checked = controlledState[i];
+      input.closest('label').classList.toggle('on', controlledState[i]);
+    }
+    controlled.addEventListener('change', (e) => {
+      const i = Number(e.target.id.replace('controlled-', '')) - 1;
+      const next = e.target.checked;
+      syncControlled(i); // React と同じく、イベント処理の直後はいったん元の値に戻す
+      queueMicrotask(() => { // 状態の更新は少し後の再描画で反映される
+        controlledState[i] = next;
+        syncControlled(i);
+        addLog(e.target.id, next);
+      });
+    });
   </script>
 </body>
 </html>
