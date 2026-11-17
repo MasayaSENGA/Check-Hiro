@@ -56,6 +56,7 @@ https://chromewebstore.google.com/detail/fddljingadaoookjbhjngcofbaibodof
 
 ## 制限事項
 
+- Shadow DOM の内側にあるチェックボックスは、同じ Shadow Root 内での範囲選択のみ対応しています
 - `<input type="checkbox">` ではない独自実装（`role="checkbox"` の div など）は対象外です
 - クロスオリジンの iframe 内にあるチェックボックスは、その iframe 内で右クリックした場合に操作対象となります
 
